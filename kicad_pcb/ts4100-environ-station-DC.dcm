@@ -1,0 +1,9 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP MS860702BA01-50
+D Board Mount Humidity+Pressure+Temperature Sensor Module 5x3mm I2C
+K Humidity Pressure Temperature I2C
+F https://www.te.com/commerce/DocumentDelivery/DDEController?Action=srchrtrv&DocNm=MS8607-02BA01&DocType=DS&DocLang=English
+$ENDCMP
+#
+#End Doc Library
