@@ -1,0 +1,49 @@
+/*
+ * Copyright (C) 2016 Technologic Systems
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ */
+
+/dts-v1/;
+
+#include "imx6ul-ts4100.dtsi"
+
+/ {
+	model = "Technologic Systems i.MX6ul TS-4100 (Default Device Tree)";
+	compatible = "fsl,imx6ul-ts4100", "fsl,imx6ul";
+};
+
+&ecspi3 {
+	fsl,spi-num-chipselects = <2>;
+	cs-gpios = <&gpio4 12 0>, <&gpio4 10 0>;
+
+	spidevlcd: spi@1 {
+		compatible = "spidev";
+		reg = <1>;
+		spi-max-frequency = <5000000>;
+	};
+};
+
+&i2c3 {
+	/* Temp, RH, Pressure sensors on TS-4100-ENVIRON-DC */
+	temppres: ms8607@76 {
+		compatible = "ms8607-temppressure";
+		reg = <0x76>;
+	};
+
+	humidity: ms8607@40 {
+		compatible = "ms8607-humidity";
+		reg = <0x40>;
+	};
+};
+
+&snvs_rtc {
+	status = "disabled";
+};
+
+&iomuxc {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_cam_gpio &pinctrl_lcd_gpio &ts4100_pinctrl_hog>;
+};
