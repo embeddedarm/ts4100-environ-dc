@@ -1,1 +1,2 @@
 source "$BR2_EXTERNAL_TS4100_ENVIRON_PATH/package/ts4100-environ/Config.in"
+source "$BR2_EXTERNAL_TS4100_ENVIRON_PATH/package/ts-pixel-font/Config.in"

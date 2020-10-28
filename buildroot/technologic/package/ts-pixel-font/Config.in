@@ -1,0 +1,7 @@
+config BR2_PACKAGE_TS_PIXEL_FONT
+	bool "ts-pixel-font"
+	help
+	  Package containing the TTF font used for the LCD display
+
+	  This font is a 4x5 pixel font and works quite well on a 128x64 px
+	  display.
