@@ -1,0 +1,1 @@
+source "$BR2_EXTERNAL_TS4100_ENVIRON_PATH/package/ts4100-environ/Config.in"

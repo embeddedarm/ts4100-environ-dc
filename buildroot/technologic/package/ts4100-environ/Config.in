@@ -1,0 +1,6 @@
+config BR2_PACKAGE_TS4100_ENVIRON
+	bool "ts4100-environ"
+	select BR2_PACKAGE_CAIRO
+	select BR2_PACKAGE_LIBCURL
+	help
+	  Package for the actual running application
