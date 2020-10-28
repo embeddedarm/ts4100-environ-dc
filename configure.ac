@@ -46,5 +46,6 @@ AC_CONFIG_FILES([
 	src/spi-lcd/cairo-display-text/Makefile
 	src/spi-lcd/lcd-helper/Makefile 
 	src/zpu/Makefile 
+	scripts/Makefile
 ])
 AC_OUTPUT
