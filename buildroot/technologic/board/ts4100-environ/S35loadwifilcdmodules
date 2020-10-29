@@ -1,0 +1,40 @@
+#!/bin/sh
+#
+# Loads the WILC3000 wifi and SPI LCD modules at start
+#
+
+umask 077
+
+start() {
+	printf "Loading WiFi module: "
+	modprobe wilc_spi
+	echo "OK"
+
+	printf "Loading LCD module: "
+	modprobe ts_st7565p_fb
+	echo "OK"
+}
+stop() {
+	true
+}
+restart() {
+	stop
+	start
+}
+
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  restart|reload)
+	restart
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?

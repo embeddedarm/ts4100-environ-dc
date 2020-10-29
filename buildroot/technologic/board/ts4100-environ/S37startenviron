@@ -1,0 +1,49 @@
+#!/bin/sh
+#
+# Start up the environ script
+#
+
+umask 077
+
+start() {
+	printf "Starting lcd-helper: "
+	lcd-helper
+	if [ $? -eq 0 ]; then echo "OK";
+	else echo "FAIL"; fi
+
+	printf "Starting environ application: "
+	start-stop-daemon -S -q -m -p /var/run/env-collect.pid -b --exec sh /usr/bin/env-collect.sh
+	if [ $? -eq 0 ]; then echo "OK";
+	else echo "FAIL"; fi
+
+	printf "Loading ZPU PIR backlight application: "
+	tszpuctl -l /usr/bin/zpu/zpu_pir_bklt.bin
+	if [ $? -eq 0 ]; then echo "OK";
+	else echo "FAIL"; fi
+}
+stop() {
+	printf "Starting environ application: "
+	start-stop-daemon -K -q -m -p /var/run/env-collect.pid
+	echo "OK"
+}
+restart() {
+	stop
+	start
+}
+
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  restart|reload)
+	restart
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?
