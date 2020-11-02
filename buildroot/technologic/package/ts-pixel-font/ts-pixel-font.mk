@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-TS_PIXEL_FONT_VERSION = 1.0
+TS_PIXEL_FONT_VERSION = 1.1
 TS_PIXEL_FONT_SITE_METHOD = file
 TS_PIXEL_FONT_SITE = $(BR2_EXTERNAL_TS4100_ENVIRON_PATH)/package/ts-pixel-font
 TS_PIXEL_FONT_SOURCE = ts-pixel-4x5-$(TS_PIXEL_FONT_VERSION).zip
