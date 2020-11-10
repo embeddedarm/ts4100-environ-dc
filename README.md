@@ -1,20 +1,27 @@
 # TS-4100 Environmental Monitor Daughter Card
 
+The project is intended to showcase using the TS-4100 daughtercard interface, using the TS-4100 ZPU (32-bit stack based microcontroller running inside of the FPGA), as well as using our [buildroot-ts.git](https://github.com/embeddedarm/buildroot-ts) repository to showcase creating a complete and deployable application using the TS-4100 as a standalone SBC.
 
 This repository contains the complete sources for our demo daughtercard for the TS-4100. These include PCB source files (KiCad format), mechanical frame/enclosure files (2D SVG), the main software that is run, and a complete Buildroot package.
 
-The project is intended to showcase a using the TS-4100 daughtercard interface, using the TS-4100 ZPU (32-bit stack based microcontroller running inside of the FPGA), as well as using our [buildroot-ts.git](https://github.com/embeddedarm/buildroot-ts) repository to create complete and bootable images for our products using the Buildroot ecosystem.
+See the [Buildroot](#Buildroot) section below for how to build the software image.
 
-See the sections below for detailed technical information.
-
-See the [Buildroot](#Buildroot) section below for how to build this project.
+See the sections below for detailed technical information and full assembly.
 
 # Application Information
+This application exercises multiple TS-4100 interfaces by:
+* Querying local weather forecasts via [wttr.in](https://wttr.in)
+* Gathering interior environmental information via an on-board temperature/pressure/relative humidity sensor
+* Compile, format, and display the above on an attached 128x64 px monochrome LCD
+* Enable the LCD backlight when there is nearby motion from a PIR sensor using the ZPU to offload this activity from the CPU
+* Receive power from a Micro USB cable
+
+
 ## TS-4100
-The TS-4100 differs from our other SoM products in that it offers a 16-pin 0.1" spaced [pin header](https://docs.embeddedarm.com/TS-4100#HD1_Expansion_Header) as well as 2 Micro USB connectors on the PCB. Power input and serial console are available via USB, with the 16-pin header providing GPIO, an SPI interface, and an I2C interface. These, combined with the on-board WiFi and Bluetooth module, allow for integration of the TS-4100 in smaller form-factor applications.
+The TS-4100 differs from our other SoM products in that it offers a 16-pin 0.1" spaced [pin header](https://docs.embeddedarm.com/TS-4100#HD1_Expansion_Header) as well as 2 Micro USB connectors on the PCB directly. Power input and serial console are available via USB, with the 16-pin header providing GPIO, an SPI interface, and an I2C interface. These, combined with the on-board WiFi and Bluetooth module, allow for integration of the TS-4100 in smaller form-factor applications.
 
 ## Daughtercard Interface
-The TS-4100-ENVIRON-DC daughtercard uses: the I2C bus for connecting to an MS8607 temperature/pressure/relative humidity sensor, the SPI bus for connecting to our 128x64 monochrome LCD, and 2 of the GPIO are used for input from an off the shelf passive infra-red (PIR) motion sensor and enabling the LCD backlight.
+The TS-4100-ENVIRON-DC daughtercard uses: the I2C bus for connecting to an MS8607 temperature/pressure/relative humidity sensor, the SPI bus for connecting to the LCD, and 2 of the GPIO are used for input from an off-the-shelf passive infrared (PIR) motion sensor and enabling the LCD backlight.
 
 ### SPI LCD
 The SPI LCD is a 128x64 px monochrome LCD panel with backlight. It uses an SPI interface that is based on the ST7565P standard. The LCD is powered via 3.3 VDC output from the daughtercard interface. The LCD backlight is powered from the 5 VDC output from the daughtercard interface.
@@ -28,30 +35,30 @@ An OpenPIR sensor is used to detect nearby motion. The output signal from the PI
 ## Software
 The main application logic is handled by a single shell script. This script pulls local weather data from [wttr.in](https://wttr.in), and reads the local environment information via the I2C temperature/pressure/relative humidity sensor on the daughtercard. The shell script is named `env-collect.sh`.
 
-The output of the collected data is formatted to fit on the screen (25x10 characters with the 4x5 pixel font used), and then the full text buffer is piped to the drawing tool `cairo-display-text`. This tool uses Pango, Cairo, and Fontconfig to take the text buffer and render it for the LCD screen. Formatting includes left shifting output from wttr.in to take up less space, as well as trimming any individual line down to 25 characters. This can result in text that is cut off on the right side of the screen, but most of the information is still viewable.
+The output of the collected data is formatted to fit on the screen (25x10 characters with the 4x5 pixel font used), and then the full text buffer is piped to the drawing tool `cairo-display-text`. This tool uses [Pango](https://pango.gnome.org/), [Cairo](https://www.cairographics.org/), and [Fontconfig](https://www.freedesktop.org/wiki/Software/fontconfig/) to take the text buffer and render it for the LCD screen.
 
-A customized pixel font was created to cleanly handle all of the UTF-8 glyphs that are used by the wttr.in service.
+A customized pixel font was created to cleanly handle all of the UTF-8 glyphs that are used by the [wttr.in](https://wttr.in) service.
 
 Buildroot is used to compile all of the utilities and provide a bootable environment. In order to accomplish this, there are a couple of clever applications of Buildroot and this repository.
 
-First, this repository is a GNU/Linux source project using Autotools to configure the compilation of `lcd-helper` and `cairo-display-text` applications. The project is set up to also install the `env-collect.sh` script and ZPU firmware binary directly to the binary directory of the build process, as well as install the font file to the system fonts directory..
+First, this repository is a GNU/Linux source project using Autotools to configure the compilation of `lcd-helper` and `cairo-display-text` applications. The project is set up to also install the `env-collect.sh` script and ZPU firmware binary directly to the binary directory of the build process, as well as install the font file to the system fonts directory.
 
-Second, this repository contains a Buildroot external tree. This is what provides the Buildroot configuration file, project specific Buildroot board files, as well as defines package to build this project's userspace software. The package `ts4100-environ-dc` is set up to use this repository to build. That is, the Buildroot configuration in this repository defines this repository as a package. The package is the compilation and installation of the binaries noted above.
+Second, this repository contains a Buildroot external tree. This is what provides the Buildroot configuration file, project specific Buildroot board files, as well as defines the package to build this repository's userspace software. The Buildroot configuration in this repository defines this repository as the package `ts4100-environ-dc`. The package handles the compilation and installation of the binaries noted above.
 
 Last, the Buildroot external configuration contains, as a submodule, our [buildroot-ts.git](https://github.com/embeddedarm/buildroot-ts) repository. The buildroot-ts.git repository is also set up as a Buildroot external tree. It provides our utilities packages in addition to base configuration files for Buildroot. Inside of that is upstream Buildroot included as a submodule. These two external trees nest together to isolate their specific implementations from each other and from Buildroot itself. The external tree feature of Buildroot is useful in making project specific repositories such as this.
 
 ### SPI LCD
-The SPI LCD operation is similar to our TS-7553-V2. A virtual framebuffer device is created to represent the LCD and then a small daemon by the name of `lcd-helper` is started. This daemon is responsible for reading and writing between the virtual framebuffer and the actual LCD device. Applications write to the LCD by writing to the virtual framebuffer device. The actual application text is rendered to the virtual framebuffer via the `cairo-display-text` application. Any text that is given to this application via stdin is then rendered to the LCD with a border around it. This is then displayed on the LCD screen by the `lcd-helper` daemon.
+A virtual framebuffer device is created to represent the LCD and then a small daemon by the name of `lcd-helper` is started. This daemon is responsible for reading and writing between the virtual framebuffer and the actual LCD device. Applications write to the LCD by writing to the virtual framebuffer device. The actual application text is rendered to the virtual framebuffer via the `cairo-display-text` application. Any text that is given to `cairo-display-text` via stdin is then rendered to the framebuffer with a border around it. This is then displayed on the LCD screen by the `lcd-helper` daemon.
 
 ### I2C Sensor
-The I2C temperature/pressure/relative humidity sensor is controlled by kernel drivers. The Buildroot external tree in this repository adds an FDT and kernel configuration fragment. This adds necessary drivers as modules and tells the kernel how they are connected on the I2C bus. The kernel driver returns the temperature in milli-C, the pressure in kPa, and the relative humidity in milli-%. The main script simply reads these values from the kernel and normalizes their output to degrees F, inHg, and %RH respectively.
+The I2C temperature/pressure/relative humidity sensor is controlled by kernel drivers. The Buildroot external tree in this repository adds an FDT and a kernel configuration fragment. This adds the necessary drivers to our default kernel config while the FDT tells the kernel how the LCD and I2C sensors are connected. The main script simply reads the I2C sensor values from the kernel and normalizes their output to degrees F, inHg, and %RH.
 
 ### ZPU
-The OpenPIR sensor used has a relatively short pulse duration when it is activated. It can be increased at the expense of longer startup times. A 7 second output pulse duration incurs a startup time of roughly 4 minutes. In order to easily catch the PIR pulse output and be able to use this to enable the backlight for an arbitrary duration of time, the [ZPU inside of the TS-4100 FPGA](https://docs.embeddedarm.com/TS-4100#ZPU) was used. The ZPU application here is very straightforward, the backlight will turn on if there is motion, and remain on until there is 10 seconds without motion.
+The OpenPIR sensor used has a relatively short pulse duration when it is activated. It can be increased at the expense of longer startup times. A 7 second output pulse duration requires a startup time of roughly 4 minutes. In order to easily catch the PIR pulse output, have a fast startup time, and be able to use the short pulse to enable the backlight for an arbitrary duration of time, the [ZPU inside of the TS-4100 FPGA](https://docs.embeddedarm.com/TS-4100#ZPU) was used. The ZPU application here is very straightforward, the backlight will turn on if there is motion, and remain on until there is 10 seconds without motion.
 
 # Building
 ## Buildroot
-Buildroot will output a compressed tarball archive that is bootable on the TS-4100 eMMC or microSD card. The instructions below assume an SD card is used as there is some set up needed for U-Boot.
+Buildroot will output a compressed tarball archive that is bootable on the TS-4100 eMMC or microSD card. The instructions below assume an SD card is used.
 
 Optionally, Docker can be used to build this project, see [Using Docker](#Using-Docker) below.
 
@@ -103,7 +110,7 @@ TODO
 The PIR sensor used in this project was set up with:
 * A JST PH connector soldered to the back side of the PCB. Installing this on the top side will result in reverse current to the OpenPIR sensor.
 * The OSC trimpot was rotated fully CCW (this controls the output pulse duration and startup time).
-* The SEN trimpot is adjusted after fully installed to acheieve the best sensitivity for the complete device. This can be adjusted through the hole in the rear of the frame.
+* The SEN trimpot is adjusted after fully installed to acheieve the best sensitivity for the installation. This can be adjusted through the hole in the rear of the frame.
 * The switch on the rear is set to "SNGL" to allow triggering on someone approaching OR retreating from the unit.
 
 #### Front Frame
