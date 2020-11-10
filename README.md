@@ -9,23 +9,23 @@ See the sections below for detailed technical information.
 
 See the [Buildroot](#Buildroot) section below for how to build this project.
 
-## Application Information
-### TS-4100
+# Application Information
+## TS-4100
 The TS-4100 differs from our other SoM products in that it offers a 16-pin 0.1" spaced [pin header](https://docs.embeddedarm.com/TS-4100#HD1_Expansion_Header) as well as 2 Micro USB connectors on the PCB. Power input and serial console are available via USB, with the 16-pin header providing GPIO, an SPI interface, and an I2C interface. These, combined with the on-board WiFi and Bluetooth module, allow for integration of the TS-4100 in smaller form-factor applications.
 
-### Daughtercard Interface
+## Daughtercard Interface
 The TS-4100-ENVIRON-DC daughtercard uses: the I2C bus for connecting to an MS8607 temperature/pressure/relative humidity sensor, the SPI bus for connecting to our 128x64 monochrome LCD, and 2 of the GPIO are used for input from an off the shelf passive infra-red (PIR) motion sensor and enabling the LCD backlight.
 
-#### SPI LCD
+### SPI LCD
 The SPI LCD is a 128x64 px monochrome LCD panel with backlight. It uses an SPI interface that is based on the ST7565P standard. The LCD is powered via 3.3 VDC output from the daughtercard interface. The LCD backlight is powered from the 5 VDC output from the daughtercard interface.
 
-#### I2C Sensor
+### I2C Sensor
 The I2C interface connects to a single MS8607 temperature/pressure/relative humidity sensor. This chip is actually two separate dies in a single package that appear at two separate I2C addresses. The I2C sensor is powered via 3.3 VDC output from the daughtercard interface.
 
-#### PIR Motion Sensor
+### PIR Motion Sensor
 An OpenPIR sensor is used to detect nearby motion. The output signal from the PIR sensor is connected to one GPIO pin with the backlight enable connected to a second GPIO pin. A simple ZPU application is used to turn on the backlight when the PIR sensor detects motion. See the [ZPU](#ZPU) section below for details of the operation. The OpenPIR board is powered via 3.3 VDC output from the daughtercard interface.
 
-### Software
+## Software
 The main application logic is handled by a single shell script. This script pulls local weather data from [wttr.in](https://wttr.in), and reads the local environment information via the I2C temperature/pressure/relative humidity sensor on the daughtercard. The shell script is named `env-collect.sh`.
 
 The output of the collected data is formatted to fit on the screen (25x10 characters with the 4x5 pixel font used), and then the full text buffer is piped to the drawing tool `cairo-display-text`. This tool uses Pango, Cairo, and Fontconfig to take the text buffer and render it for the LCD screen. Formatting includes left shifting output from wttr.in to take up less space, as well as trimming any individual line down to 25 characters. This can result in text that is cut off on the right side of the screen, but most of the information is still viewable.
@@ -40,17 +40,17 @@ Second, this repository contains a Buildroot external tree. This is what provide
 
 Last, the Buildroot external configuration contains, as a submodule, our [buildroot-ts.git](https://github.com/embeddedarm/buildroot-ts) repository. The buildroot-ts.git repository is also set up as a Buildroot external tree. It provides our utilities packages in addition to base configuration files for Buildroot. Inside of that is upstream Buildroot included as a submodule. These two external trees nest together to isolate their specific implementations from each other and from Buildroot itself. The external tree feature of Buildroot is useful in making project specific repositories such as this.
 
-#### SPI LCD
+### SPI LCD
 The SPI LCD operation is similar to our TS-7553-V2. A virtual framebuffer device is created to represent the LCD and then a small daemon by the name of `lcd-helper` is started. This daemon is responsible for reading and writing between the virtual framebuffer and the actual LCD device. Applications write to the LCD by writing to the virtual framebuffer device. The actual application text is rendered to the virtual framebuffer via the `cairo-display-text` application. Any text that is given to this application via stdin is then rendered to the LCD with a border around it. This is then displayed on the LCD screen by the `lcd-helper` daemon.
 
-#### I2C Sensor
+### I2C Sensor
 The I2C temperature/pressure/relative humidity sensor is controlled by kernel drivers. The Buildroot external tree in this repository adds an FDT and kernel configuration fragment. This adds necessary drivers as modules and tells the kernel how they are connected on the I2C bus. The kernel driver returns the temperature in milli-C, the pressure in kPa, and the relative humidity in milli-%. The main script simply reads these values from the kernel and normalizes their output to degrees F, inHg, and %RH respectively.
 
-#### ZPU
+### ZPU
 The OpenPIR sensor used has a relatively short pulse duration when it is activated. It can be increased at the expense of longer startup times. A 7 second output pulse duration incurs a startup time of roughly 4 minutes. In order to easily catch the PIR pulse output and be able to use this to enable the backlight for an arbitrary duration of time, the [ZPU inside of the TS-4100 FPGA](https://docs.embeddedarm.com/TS-4100#ZPU) was used. The ZPU application here is very straightforward, the backlight will turn on if there is motion, and remain on until there is 10 seconds without motion.
 
-## Building
-### Buildroot
+# Building
+## Buildroot
 Buildroot will output a compressed tarball archive that is bootable on the TS-4100 eMMC or microSD card. The instructions below assume an SD card is used as there is some set up needed for U-Boot.
 
 Optionally, Docker can be used to build this project, see [Using Docker](#Using-Docker) below.
@@ -84,24 +84,22 @@ This will force the unit to boot from MicroSD and skip detection of USB devices 
 
 * The TS-4100 is now set up to boot directly to the MicroSD card that has been formatted with the full application.
 
-### PCB
-#### Ordering
+## PCB
+### Ordering
 The `kicad_pcb/` directory contains the PCB source files. We used a PCB fabricator that could directly accept KiCad board files without having to create Gerber files for them. This was to simplify the ordering process as much as possible. We recommend using a similar PCB fabricator.
 
 Inside of this directory, a bill-of-matierals is available with recommended distributors. The only component that is not readily available from a distributor is the LCD screen itself. All other components are available from a number of US distributors.
 
-#### Assembly
+### Assembly
 While nearly all of the components are SMD, they are large enough to be able to be hand soldered by individuals with a moderate skill in SMD PCB soldering. The PCB itself has not been designed for automated assembly and is simply a demo.
 
-### Mounting Frame
-#### Ordering
+## Mounting Frame
+### Ordering
 
-### Final Assembly
+## Final Assembly
 TODO
-#### TS-4100 and TS-4100-ENVIRON-DC
-#### PIR Sensor
-
-#### PIR Sensor
+### TS-4100 and TS-4100-ENVIRON-DC
+### PIR Sensor
 The PIR sensor used in this project was set up with:
 * A JST PH connector soldered to the back side of the PCB. Installing this on the top side will result in reverse current to the OpenPIR sensor.
 * The OSC trimpot was rotated fully CCW (this controls the output pulse duration and startup time).
@@ -111,7 +109,7 @@ The PIR sensor used in this project was set up with:
 #### Front Frame
 #### Rear Frame
 
-## Using Docker
+# Using Docker
 Optionally, Buildroot can be built in a Docker container. The container is maintained in lock-step with this project and the upstream Buildroot submodule. Meaning it is possible to go back to a specific commit in history and get a valid environment for building in via Docker.
 
 The container is implemented as a simple front-end script, any arguments passed to the script will be passed directly to the `buildroot/` directory inside of the container. The first time the script is run, it will build the container so this may take additional time.
@@ -121,14 +119,14 @@ Building the Buildroot otuput image via Docker would use the following command
 ./scripts/run_docker_buildroot.sh make ts4100_environ_defconfig clean all
 ```
 
-### Notes on using Docker
+## Notes on using Docker
 
 * Choose building either from the host workstation or Docker container, it is not recommended to mix and match. Do a `make clean` from one build system in order to be able to cleanly switch to another. Switching between the two without `make clean` in between will likely cause build issues
 * The `pwd` is mapped to `/work/` inside the container, with `$HOME` being set to `/work/`. Any changes made inside of `/work/` will be retained, any changes to the rest of the container filesystem will be lost once the container is exited
 * The ts4100_environ config has ccache enabled though Buildroot. Normally, this lies at `~/.buildroot-ccache`. Inside the container however, the `buildroot/` directory is set to `$HOME`. If relying on ccache in Buildroot, be sure to continually use the same build system to prevent excessive work
 * It's possible to enter the shell of the container by passing `bash` to the script, i.e. `./scripts/run_docker_buildroot.sh bash`
 
-## License
+
 
 
 ## Application Information
